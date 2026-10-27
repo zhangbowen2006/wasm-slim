@@ -1,0 +1,39 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "zhangbowen2006/wasmslim/src/audit"
+
+import {
+  "zhangbowen2006/wasmslim/src/wasm",
+}
+
+// Values
+pub fn audit(@wasm.Module, Int32) -> Report
+
+pub fn classify(Int32, Int32) -> String
+
+pub fn error_count(Report) -> Int32
+
+pub fn passed(Report) -> Bool
+
+// Errors
+
+// Types and methods
+pub struct Finding {
+  level : String
+  code : String
+  message : String
+}
+
+pub struct Report {
+  size : Int32
+  custom_bytes : Int32
+  custom_pct : Int32
+  profile : String
+  dead_functions : Int32
+  dead_bytes : Int32
+  budget : Int32
+  findings : Array[Finding]
+}
+
+// Type aliases
+
+// Traits

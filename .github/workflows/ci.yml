@@ -21,13 +21,34 @@ jobs:
 
       - run: moon test
 
-      - name: Build a real wasm sample
-        run: moon build --target wasm --release
+      - name: Build both profiles
+        run: |
+          moon build --target wasm --release
+          moon build --target wasm
 
-      - name: Attribute size on the sample
+      - name: Attribution on the release build
         run: moon run cmd -- _build/wasm/release/build/cmd/cmd.wasm
+
+      - name: Gate passes a release build
+        run: moon run cmd -- _build/wasm/release/build/cmd/cmd.wasm --check --budget 200000
+
+      - name: Gate rejects a debug build
+        run: |
+          if moon run cmd -- _build/wasm/debug/build/cmd/cmd.wasm --check; then
+            echo "expected the gate to fail on a debug build"
+            exit 1
+          fi
+          echo "gate correctly failed on the debug build"
+
+      - name: Gate rejects an over-budget build
+        run: |
+          if moon run cmd -- _build/wasm/release/build/cmd/cmd.wasm --check --budget 1000; then
+            echo "expected the gate to fail when over budget"
+            exit 1
+          fi
+          echo "gate correctly failed on the budget"
 
       - name: Strip and validate the result
         run: |
-          moon run cmd -- _build/wasm/release/build/cmd/cmd.wasm --strip --out /tmp/slim.wasm
+          moon run cmd -- _build/wasm/debug/build/cmd/cmd.wasm --strip --out /tmp/slim.wasm
           node -e "const fs=require('fs');const b=fs.readFileSync('/tmp/slim.wasm');if(!WebAssembly.validate(b)){console.error('invalid wasm');process.exit(1)}console.log('valid wasm',b.length,'bytes')"

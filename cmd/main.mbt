@@ -10,10 +10,32 @@ fn human(n : Int) -> String {
 }
 
 ///|
+/// Digits only; used for --budget. Ignores anything that is not 0-9.
+fn parse_uint(s : String) -> Int {
+  let mut n = 0
+  for c in s.to_array() {
+    let d = c.to_int()
+    if d >= 48 && d <= 57 {
+      n = n * 10 + (d - 48)
+    }
+  }
+  n
+}
+
+///|
+fn usage() -> Unit {
+  println("usage:")
+  println("  wasmslim <file.wasm>                 size attribution")
+  println("  wasmslim <file.wasm> --check         release gate (exit 1 on error)")
+  println("  wasmslim <file.wasm> --check --budget 16384")
+  println("  wasmslim <file.wasm> --strip [--out <path>]")
+}
+
+///|
 fn main raise {
   let args = @env.args()
   if args.length() < 2 {
-    println("usage: wasmslim <file.wasm>")
+    usage()
     return
   }
   let path = args[1]
@@ -21,17 +43,59 @@ fn main raise {
   let m = @wasm.parse_module(data)
   let total = data.length()
 
-  println("file    \{path}")
-  println("size    \{human(total)} (\{total} bytes)")
-  println("sections \{m.sections.length()}")
-  for s in m.sections {
-    let pct = s.content_size * 100 / total
-    println("  id=\{s.id}  \{human(s.content_size)}  \{pct}%")
+  let mut do_check = false
+  let mut do_strip = false
+  let mut do_debug = false
+  let mut budget = 0
+  let mut out_path = path + ".stripped.wasm"
+  let mut i = 2
+  while i < args.length() {
+    let a = args[i]
+    if a == "--check" {
+      do_check = true
+    } else if a == "--strip" {
+      do_strip = true
+    } else if a == "--debug" {
+      do_debug = true
+    } else if a == "--budget" && i + 1 < args.length() {
+      budget = parse_uint(args[i + 1])
+      i = i + 1
+    } else if a == "--out" && i + 1 < args.length() {
+      out_path = args[i + 1]
+      i = i + 1
+    }
+    i = i + 1
   }
 
-  if args.length() > 2 && args[2] == "--strip" {
+  if do_check {
+    let r = @audit.audit(m, budget)
+    println("file      \{path}")
+    println("size      \{human(total)} (\{total} bytes)")
+    println(
+      "profile   \{r.profile} (custom sections \{r.custom_pct}%)",
+    )
+    println("dead code \{r.dead_functions} function(s), \{r.dead_bytes} body bytes")
+    if budget > 0 {
+      println("budget    \{budget} bytes")
+    } else {
+      println("budget    not set")
+    }
+    println("")
+    for f in r.findings {
+      println("  \{f.level}  \{f.code}  \{f.message}")
+    }
+    println("")
+    let verdict = if @audit.passed(r) { "PASS" } else { "FAIL" }
+    println("verdict   \{verdict}")
+    if !@audit.passed(r) {
+      // abort carries the exit code (1) so CI can gate on it
+      abort("audit failed")
+    }
+    return
+  }
+
+  if do_strip {
     let stripped = @wasm.strip_custom(m)
-    let out_path = if args.length() > 4 && args[3] == "--out" { args[4] } else { path + ".stripped.wasm" }
     @fs.write_bytes_to_file(out_path, stripped) catch {
       _ => {
         println("cannot write " + out_path)
@@ -46,29 +110,30 @@ fn main raise {
     println("removed    custom sections only; code/type/export untouched")
     return
   }
-  if args.length() > 2 && args[2] == "--debug" {
+
+  if do_debug {
     let bodies = @wasm.function_bodies(m)
-    let mut i = 0
-    while i < bodies.length() {
-      let b = bodies[i]
+    let mut bi = 0
+    while bi < bodies.length() {
+      let b = bodies[bi]
       let scan = @wasm.scan_body(m.data, b)
       if scan.unsupported.length() > 0 {
         let at = scan.unsupported_at[0]
         let bad = scan.unsupported[0]
-        println("func[" + i.to_string() + "] body=" + b.start.to_string() + ".." + b.end.to_string() + " bad op=" + bad.to_string() + " at=" + at.to_string())
-        let from = if at - 8 > b.start { at - 8 } else { b.start }
-        let to = if at + 8 < b.end { at + 8 } else { b.end }
-        let mut hex = ""
-        let mut j = from
-        while j < to {
-          hex = hex + " " + m.data[j].to_int().to_string()
-          j = j + 1
-        }
-        println("  bytes:" + hex)
+        println("func[" + bi.to_string() + "] body=" + b.start.to_string() + ".." + b.end.to_string() + " bad op=" + bad.to_string() + " at=" + at.to_string())
       }
-      i = i + 1
+      bi = bi + 1
     }
     return
+  }
+
+  // default: attribution
+  println("file    \{path}")
+  println("size    \{human(total)} (\{total} bytes)")
+  println("sections \{m.sections.length()}")
+  for s in m.sections {
+    let pct = s.content_size * 100 / total
+    println("  id=\{s.id}  \{human(s.content_size)}  \{pct}%")
   }
   let r = @analysis.analyze(m)
   let mut reach = 0
@@ -99,16 +164,5 @@ fn main raise {
       ops = ops + " 0x" + u.to_string()
     }
     println("warning    \{r.unsupported.length()} unsupported opcode(s):\{ops}")
-  }
-  if dead.length() > 0 {
-    println("")
-    println("dead function indices (first 20):")
-    let mut shown = 0
-    for idx in dead {
-      if shown < 20 {
-        println("  func[\{idx}]")
-        shown = shown + 1
-      }
-    }
   }
 }

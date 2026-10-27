@@ -1,0 +1,4 @@
+import {
+  "zhangbowen2006/wasmslim/src/wasm",
+  "zhangbowen2006/wasmslim/src/analysis",
+}

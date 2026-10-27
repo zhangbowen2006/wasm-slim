@@ -1,84 +1,98 @@
 # WasmSlim
 
-体积诊断与安全裁剪工具，面向 MoonBit 编译产出的 WebAssembly 模块。
+MoonBit Wasm 产物的**上线门禁**。一条命令回答一个问题：**这份产物能不能上线？**
 
-MoonBit 的 debug 构建里，**约 60% 的字节是自定义段**（名字表、调试信息）。这些字节对运行没有贡献，却直接进入浏览器首屏下载与边缘冷启动路径。WasmSlim 把体积按段拆开告诉你花在哪，并安全地裁掉不该上线的那部分。
-
-## 实测
-
-对一个 40 KB 的真实 MoonBit 产物（仓库内 `fixtures/self.wasm`，本工具自身的构建快照）：
-
-```
-$ moon run cmd -- build/cmd.wasm
-size    39.6 KiB (40603 bytes)
-sections 13
-  id=1  128 B   0%     type
-  id=2  740 B   1%     import
-  id=3  163 B   0%     function
-  id=7  20 B    0%     export
-  id=10 13.4 KiB 33%   code
-  id=11 1.2 KiB  3%    data
-  id=0  23.7 KiB 59%   custom (names/debug)
-  id=0  69 B    0%     custom
-
-functions  imported=17 defined=161 total=178
-reachable  178
-unreachable 0
-
-$ moon run cmd -- build/cmd.wasm --strip
-before     39.6 KiB (40603 bytes)
-after      15.8 KiB (16227 bytes)
-saved      23.8 KiB (60%)
+```sh
+moon run cmd -- build/app.wasm --check
 ```
 
-裁剪后的模块通过标准验证器：`WebAssembly.validate(stripped) === true`。
+```text
+file      build/app.wasm
+size      39.6 KiB (40603 bytes)
+profile   debug (custom sections 60%)
+dead code 0 function(s), 0 body bytes
+budget    not set
 
-**同一项目的三种构建，裁剪收益差别很大**：
+  error  debug-build  looks like a debug build: custom sections are 60% of the file (24370 bytes). Ship a --release build, or strip the module.
 
-| 构建 | 大小 | custom 段 | `--strip` 收益 |
+verdict   FAIL
+```
+
+退出码 `1`，CI 直接红。同一份代码的 release 产物：
+
+```text
+profile   release (custom sections 0%)
+
+  info  ok  no blocking issue found.
+
+verdict   PASS
+```
+
+## 为什么需要它
+
+同一份代码，两种构建的产物体积差 2.5 倍：
+
+| 构建 | 大小 | custom 段 | 能否上线 |
 | --- | --- | --- | --- |
-| debug (wasm) | 40603 B | 55.0 KiB (57%) | **-60%** |
-| release (wasm) | 31706 B | 110 B (0%) | -0.4% |
-| release (wasm-gc) | 28220 B | 110 B (0%) | -0.4% |
+| debug (wasm) | 40603 B | 55.0 KiB (57%) | **不该** |
+| release (wasm) | 31706 B | 110 B (0%) | 可以 |
+| release (wasm-gc) | 28220 B | 110 B (0%) | 可以 |
 
-release 构建已经很紧凑，`--strip` 几乎没有收益。WasmSlim 的价值在于**让你一眼看出手上这份产物是哪种构建**，而不是假装还能压出空间。
+**debug 产物有六成是名字表和调试信息。** 忘记加 `--release`、或者为了线上排查而用 debug 产物发布，是一个真实发生的失误——这些字节会直接进入浏览器首屏下载和边缘冷启动。人工 review 看不出来，`:file` 命令也看不出来，但 `custom 段占比` 一眼就能看出。
+
+WasmSlim 把这件事变成 CI 里的一条规则：**debug 构建直接失败**。它也支持体积预算，防止某次提交悄悄把包撑大。
 
 ## 用法
 
 ```sh
-# 体积诊断
-moon run cmd -- path/to/module.wasm
+# 门禁：debug 构建或超预算时退出码为 1
+moon run cmd -- app.wasm --check
+moon run cmd -- app.wasm --check --budget 32768
 
-# 删除自定义段（名字/调试信息），输出到新文件
-moon run cmd -- path/to/module.wasm --strip
-moon run cmd -- path/to/module.wasm --strip --out slim.wasm
+# 体积归因：这些字节花在哪
+moon run cmd -- app.wasm
 
-# 定位指令扫描失败的位置（开发用）
-moon run cmd -- path/to/module.wasm --debug
+# 需要时裁掉调试信息（debug 产物可减 60%）
+moon run cmd -- app.wasm --strip --out slim.wasm
 ```
 
-## 它做了什么
+## 审计规则
 
-- **段级归因**：遍历 section 表，输出每个段的字节数与占比，包括多个 custom 段。
-- **指令扫描**：解析函数体，识别 `call` / `ref.func` / `call_indirect`，覆盖控制流、内存访问、SIMD（`0xFD`）、批量内存（`0xFC`）、引用类型与 GC 前缀。遇到不认识的字节就停止并报告位置，不猜测。
-- **可达性分析**：以导出、`start`、element 段为根做广度优先遍历。element 段的八种 flag 形式全部处理，包括 `ref.func` 表达式形式（flags 4–7）——漏掉它们会把仍在使用的函数误判为死代码。
-- **安全裁剪**：复制除 custom 以外的所有段，保留原始长度前缀。
+| 规则 | 级别 | 触发条件 |
+| --- | --- | --- |
+| `debug-build` | error | custom 段占比 ≥ 20%（实测 debug 为 57–60%，release 为 0%） |
+| `over-budget` | error | 文件大小超过 `--budget` |
+| `dead-code` | warn | 存在不可达函数（记录数量与函数体字节） |
+| `ok` | info | 没有阻塞问题 |
+
+退出码：`0` 通过，`1` 有 error，`2` 用法或解析错误。
+
+## 支撑它的解析器
+
+门禁的判定全部建立在自研的 Wasm 二进制解析上，不依赖外部工具：
+
+- **段级遍历**：每个 section 的边界、大小、占比，多个 custom 段分别列出。
+- **指令扫描**：解析函数体，识别 `call` / `ref.func` / `call_indirect`，覆盖控制流、内存访问、SIMD（`0xFD`）、批量内存（`0xFC`）、引用类型与 GC 前缀。遇到不认识的字节立即停止并报告偏移，不猜测。
+- **可达性分析**：以导出、`start`、element 段为根做 BFS。element 段的八种 flag 形式全部处理，包括 `ref.func` 表达式形式——漏掉它们会把仍在使用的函数误判为死代码。
+- **畸形输入**：段长度或名字越界时给出偏移与字节数，而不是崩溃堆栈。
 
 ## 边界（先说清楚）
 
-- **不重写函数索引**。删除函数需要重编号 `call`、`ref.func`、`export`、element 与 code 段，当前版本不做这件事；因此裁剪只发生在段级。
-- **对 MoonBit 产物，死代码分析的结果是 0**。实测 debug 与 release 构建均为 0——编译器自己已经做了消除。死代码分析的用处在第三方或手写模块。
-- **不删除未使用的全局/表/数据段**。
-- **不是链接器**，不合并多个模块。
+- **对 release 构建，`--strip` 收益接近 0**（实测 −0.4%）。MoonBit 的 release 构建已经很紧凑，WasmSlim 的作用是确认这一点，不是假装还能压。
+- **MoonBit 产物的死代码为 0**（debug 与 release 实测均为 0）。死代码规则对手写或第三方模块才有意义。
+- **只做段级裁剪**，不重写函数索引（删除函数需要重编号 `call`、`ref.func`、`export`、element 与 code 段）。
+- 不是链接器，不合并模块；不处理 Component Model。
 
 ## 构建与测试
 
 ```sh
-moon check --deny-warn
-moon test --deny-warn     # 9 个单元测试：LEB128 往返、段遍历、magic 校验、可达性判定、导出解析、裁剪保真
-moon build --target wasm  # 用本仓库自身产物做端到端样本
+moon check
+moon test          # 14 个单元测试
+moon build --target wasm
 ```
+
+CI 会在 Linux 上跑完整链路：check → test → 构建真实 Wasm → 归因 → 门禁 → 裁剪 → 用 Node 的标准验证器校验输出。
 
 ## 许可
 
-MIT。依赖 `moonbitlang/core`（Apache-2.0）与 `moonbitlang/x`（Apache-2.0），许可证与声明随项目分发。
+MIT。依赖 `moonbitlang/core`、`moonbitlang/x`（均为 Apache-2.0），许可证与声明随项目分发。
