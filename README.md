@@ -57,6 +57,7 @@ moon run cmd -- app.wasm
 
 # 需要时裁掉调试信息（debug 产物可减 60%）
 moon run cmd -- app.wasm --strip --out slim.wasm
+# 实测：debug 产物 40603 -> 16227 字节（-60%），release 产物 31706 -> 31592（-0.4%）
 ```
 
 ## 差分：这次改动大在哪个函数
@@ -114,6 +115,12 @@ moon run cmd -- app.wasm --top 10
 - **可达性分析**：以导出、`start`、element 段为根做 BFS。element 段的八种 flag 形式全部处理，包括 `ref.func` 表达式形式——漏掉它们会把仍在使用的函数误判为死代码。
 - **畸形输入**：段长度或名字越界时给出偏移与字节数，而不是崩溃堆栈。
 
+## 与已有项目的关系
+
+体积类工具已有实现：`BigSaltyMan/moonsize` 按段统计，`mizchi/wite` 分析组件模型。WasmSlim 的区别是**判定**（退出码可接 CI）与**函数级差分**，不是再出一份统计报表。
+
+本仓库**无代码复用，不是任何项目的分支、改名或扩展**；Wasm 二进制解析、name 段解析、指令扫描、可达性分析、函数级差分均为独立实现，仅依赖 `moonbitlang/core` 与 `moonbitlang/x`。
+
 ## 边界（先说清楚）
 
 - **对 release 构建，`--strip` 收益接近 0**（实测 −0.4%）。MoonBit 的 release 构建已经很紧凑，WasmSlim 的作用是确认这一点，不是假装还能压。
@@ -125,7 +132,7 @@ moon run cmd -- app.wasm --top 10
 
 ```sh
 moon check
-moon test          # 24 个单元测试
+moon test          # 24 个单元测试（LEB128、段遍历、name 段、可达性、门禁、预算、差分、裁剪）
 moon build --target wasm
 ```
 
