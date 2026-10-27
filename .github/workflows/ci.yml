@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - run: moon check --deny-warn
+
+      - run: moon test --deny-warn
+
+      - name: Build a real wasm sample
+        run: moon build --target wasm --release
+
+      - name: Attribute size on the sample
+        run: moon run cmd -- _build/wasm/release/build/cmd/cmd.wasm
+
+      - name: Strip and validate the result
+        run: |
+          moon run cmd -- _build/wasm/release/build/cmd/cmd.wasm --strip --out /tmp/slim.wasm
+          node -e "const fs=require('fs');const b=fs.readFileSync('/tmp/slim.wasm');if(!WebAssembly.validate(b)){console.error('invalid wasm');process.exit(1)}console.log('valid wasm',b.length,'bytes')"
