@@ -1,0 +1,34 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "zhangbowen2006/wasmslim/src/analysis"
+
+import {
+  "zhangbowen2006/wasmslim/src/wasm",
+}
+
+// Values
+pub fn analyze(@wasm.Module) -> Reach
+
+pub fn element_roots(@wasm.Module) -> (Array[UInt32], Array[Int32])
+
+pub fn function_count(Reach) -> Int32
+
+pub fn skip_expr(Bytes, Int32) -> Int32
+
+pub fn unreachable_functions(Reach) -> Array[UInt32]
+
+// Errors
+
+// Types and methods
+pub struct Reach {
+  imported : Int32
+  defined : Int32
+  total : Int32
+  reachable : Array[Bool]
+  roots : Array[UInt32]
+  unsupported : Array[Int32]
+  indirect_sites : Int32
+}
+
+// Type aliases
+
+// Traits

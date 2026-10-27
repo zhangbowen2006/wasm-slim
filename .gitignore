@@ -1,0 +1,4 @@
+_build/
+.mooncakes/
+*.stripped.wasm
+.DS_Store
