@@ -1,18 +1,18 @@
 ///|
 /// Result of reachability analysis over the function index space.
 pub struct Reach {
-  imported : Int
-  defined : Int
-  total : Int
+  imported : Int32
+  defined : Int32
+  total : Int32
   reachable : Array[Bool]
-  roots : Array[UInt]
-  unsupported : Array[Int]
-  indirect_sites : Int
+  roots : Array[UInt32]
+  unsupported : Array[Int32]
+  indirect_sites : Int32
 }
 
 ///|
-pub fn unreachable_functions(r : Reach) -> Array[UInt] {
-  let out : Array[UInt] = []
+pub fn unreachable_functions(r : Reach) -> Array[UInt32] {
+  let out : Array[UInt32] = []
   for i in 0..<r.total {
     if !r.reachable[i] {
       out.push(i.reinterpret_as_uint())
@@ -23,7 +23,7 @@ pub fn unreachable_functions(r : Reach) -> Array[UInt] {
 
 ///|
 /// Skip a constant expression, returning the position after its `end`.
-pub fn skip_expr(data : Bytes, pos : Int) -> Int {
+pub fn skip_expr(data : Bytes, pos : Int32) -> Int32 {
   let mut i = pos
   let mut depth = 0
   let mut done = false
@@ -31,13 +31,7 @@ pub fn skip_expr(data : Bytes, pos : Int) -> Int {
     let op = data[i].to_int()
     i = i + 1
     match op {
-      0x0B => {
-        if depth == 0 {
-          done = true
-        } else {
-          depth = depth - 1
-        }
-      }
+      0x0B => if depth == 0 { done = true } else { depth = depth - 1 }
       0x02 | 0x03 | 0x04 => depth = depth + 1
       0x41 => {
         let (_, p) = @wasm.read_i32(data, i)
@@ -68,9 +62,9 @@ pub fn skip_expr(data : Bytes, pos : Int) -> Int {
 /// Scan a constant expression for a `ref.func` index. Used by expression-form
 /// element segments (flags 4..7), whose entries are `ref.func <i> end` rather
 /// than a raw index vector.
-fn expr_ref_func(data : Bytes, pos : Int) -> (UInt?, Int) {
+fn expr_ref_func(data : Bytes, pos : Int32) -> (UInt32?, Int32) {
   let mut i = pos
-  let mut found : UInt? = None
+  let mut found : UInt32? = None
   let mut done = false
   while !done && i < data.length() {
     let op = data[i].to_int()
@@ -102,9 +96,9 @@ fn expr_ref_func(data : Bytes, pos : Int) -> (UInt?, Int) {
 /// Collect function indices referenced by the element section. Every one of
 /// them is a root: an indirect call may reach any of them. All eight flag
 /// forms are handled, including the expression forms (4..7).
-pub fn element_roots(m : @wasm.Module) -> (Array[UInt], Array[Int]) {
-  let roots : Array[UInt] = []
-  let unsupported : Array[Int] = []
+pub fn element_roots(m : @wasm.Module) -> (Array[UInt32], Array[Int32]) {
+  let roots : Array[UInt32] = []
+  let unsupported : Array[Int32] = []
   match @wasm.section_of(m, 9) {
     None => ()
     Some(sec) => {
@@ -237,7 +231,7 @@ pub fn analyze(m : @wasm.Module) -> Reach {
   for _ in 0..<total {
     reachable.push(false)
   }
-  let roots : Array[UInt] = []
+  let roots : Array[UInt32] = []
   for e in @wasm.exports(m) {
     if e.kind == 0 {
       roots.push(e.index)
@@ -254,11 +248,11 @@ pub fn analyze(m : @wasm.Module) -> Reach {
       roots.push(idx)
     }
   }
-  let unsupported : Array[Int] = []
+  let unsupported : Array[Int32] = []
   for u in elem_unsupported {
     unsupported.push(u)
   }
-  let queue : Array[UInt] = []
+  let queue : Array[UInt32] = []
   for r in roots {
     let i = r.reinterpret_as_int()
     if i >= 0 && i < total && !reachable[i] {
@@ -305,13 +299,5 @@ pub fn analyze(m : @wasm.Module) -> Reach {
       }
     }
   }
-  {
-    imported,
-    defined,
-    total,
-    reachable,
-    roots,
-    unsupported,
-    indirect_sites,
-  }
+  { imported, defined, total, reachable, roots, unsupported, indirect_sites, }
 }

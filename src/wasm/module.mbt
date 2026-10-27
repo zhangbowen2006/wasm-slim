@@ -2,9 +2,9 @@
 /// One section of a WebAssembly module: its id and the byte range holding its
 /// content (excluding the id byte and the size prefix).
 pub struct Section {
-  id : Int
-  content_start : Int
-  content_size : Int
+  id : Int32
+  content_start : Int32
+  content_size : Int32
 }
 
 ///|
@@ -16,7 +16,7 @@ pub struct Module {
 ///|
 /// Refuse to read past the end of the file. A malformed module must fail with
 /// a message that names the offset, not with an index-out-of-bounds stack.
-pub fn ensure(data : Bytes, pos : Int, need : Int, what : String) -> Unit {
+pub fn ensure(data : Bytes, pos : Int32, need : Int32, what : String) -> Unit {
   if pos < 0 || need < 0 || pos + need > data.length() {
     // `abort` drops its message on the wasm backend, so print first.
     println(
@@ -63,7 +63,7 @@ pub fn parse_module(data : Bytes) -> Module {
 }
 
 ///|
-pub fn section_of(m : Module, id : Int) -> Section? {
+pub fn section_of(m : Module, id : Int32) -> Section? {
   let mut found : Section? = None
   for s in m.sections {
     if s.id == id && found is None {
@@ -74,7 +74,7 @@ pub fn section_of(m : Module, id : Int) -> Section? {
 }
 
 ///|
-pub fn read_name(data : Bytes, pos : Int) -> (String, Int) {
+pub fn read_name(data : Bytes, pos : Int32) -> (String, Int32) {
   let (len, p) = read_u32(data, pos)
   let n = len.reinterpret_as_int()
   ensure(data, p, n, "name")
@@ -83,7 +83,7 @@ pub fn read_name(data : Bytes, pos : Int) -> (String, Int) {
 }
 
 ///|
-pub fn skip_limits(data : Bytes, pos : Int) -> Int {
+pub fn skip_limits(data : Bytes, pos : Int32) -> Int32 {
   let flags = data[pos].to_int()
   let (_, p) = read_u32(data, pos + 1)
   if flags == 0 {
@@ -95,13 +95,13 @@ pub fn skip_limits(data : Bytes, pos : Int) -> Int {
 }
 
 ///|
-pub fn skip_global_type(_data : Bytes, pos : Int) -> Int {
+pub fn skip_global_type(_data : Bytes, pos : Int32) -> Int32 {
   // valtype (1 byte) + mutability (1 byte)
   pos + 2
 }
 
 ///|
-pub fn skip_table_type(data : Bytes, pos : Int) -> Int {
+pub fn skip_table_type(data : Bytes, pos : Int32) -> Int32 {
   // elemtype (1 byte) + limits
   skip_limits(data, pos + 1)
 }
@@ -109,8 +109,8 @@ pub fn skip_table_type(data : Bytes, pos : Int) -> Int {
 ///|
 pub struct Export {
   name : String
-  kind : Int
-  index : UInt
+  kind : Int32
+  index : UInt32
 }
 
 ///|
@@ -135,7 +135,7 @@ pub fn exports(m : Module) -> Array[Export] {
 }
 
 ///|
-pub fn imported_function_count(m : Module) -> Int {
+pub fn imported_function_count(m : Module) -> Int32 {
   let mut funcs = 0
   match section_of(m, 2) {
     None => ()
@@ -167,7 +167,7 @@ pub fn imported_function_count(m : Module) -> Int {
 }
 
 ///|
-pub fn defined_function_count(m : Module) -> Int {
+pub fn defined_function_count(m : Module) -> Int32 {
   match section_of(m, 3) {
     None => 0
     Some(sec) => {
@@ -212,7 +212,7 @@ pub fn strip_custom(m : Module) -> Bytes {
 
 ///|
 /// Sum of the custom-section bytes, i.e. what strip_custom removes.
-pub fn custom_bytes(m : Module) -> Int {
+pub fn custom_bytes(m : Module) -> Int32 {
   let mut total = 0
   for s in m.sections {
     if s.id == 0 {

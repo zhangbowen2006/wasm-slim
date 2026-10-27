@@ -9,20 +9,20 @@ pub struct Finding {
 
 ///|
 pub struct Report {
-  size : Int
-  custom_bytes : Int
-  custom_pct : Int
+  size : Int32
+  custom_bytes : Int32
+  custom_pct : Int32
   profile : String
-  dead_functions : Int
-  dead_bytes : Int
-  budget : Int
+  dead_functions : Int32
+  dead_bytes : Int32
+  budget : Int32
   findings : Array[Finding]
 }
 
 ///|
 /// A debug build carries the name table and debug sections; in practice that
 /// is more than a fifth of the file. Release builds keep ~110 bytes.
-pub fn classify(custom_bytes : Int, size : Int) -> String {
+pub fn classify(custom_bytes : Int32, size : Int32) -> String {
   if size <= 0 {
     "empty"
   } else if custom_bytes * 100 / size >= 20 {
@@ -35,7 +35,7 @@ pub fn classify(custom_bytes : Int, size : Int) -> String {
 ///|
 /// Audit a module against a size budget and a release expectation.
 /// `budget` of 0 means "no budget set".
-pub fn audit(m : @wasm.Module, budget : Int) -> Report {
+pub fn audit(m : @wasm.Module, budget : Int32) -> Report {
   let size = m.data.length()
   let custom_bytes = @wasm.custom_bytes(m)
   let custom_pct = if size > 0 { custom_bytes * 100 / size } else { 0 }
@@ -56,10 +56,10 @@ pub fn audit(m : @wasm.Module, budget : Int) -> Report {
       level: "error",
       code: "debug-build",
       message: "looks like a debug build: custom sections are " +
-        custom_pct.to_string() +
-        "% of the file (" +
-        custom_bytes.to_string() +
-        " bytes). Ship a --release build, or strip the module.",
+      custom_pct.to_string() +
+      "% of the file (" +
+      custom_bytes.to_string() +
+      " bytes). Ship a --release build, or strip the module.",
     })
   }
   if budget > 0 && size > budget {
@@ -67,12 +67,12 @@ pub fn audit(m : @wasm.Module, budget : Int) -> Report {
       level: "error",
       code: "over-budget",
       message: "size " +
-        size.to_string() +
-        " exceeds the budget of " +
-        budget.to_string() +
-        " bytes by " +
-        (size - budget).to_string() +
-        " bytes.",
+      size.to_string() +
+      " exceeds the budget of " +
+      budget.to_string() +
+      " bytes by " +
+      (size - budget).to_string() +
+      " bytes.",
     })
   }
   if dead.length() > 0 {
@@ -80,9 +80,9 @@ pub fn audit(m : @wasm.Module, budget : Int) -> Report {
       level: "warn",
       code: "dead-code",
       message: dead.length().to_string() +
-        " function(s) are unreachable (" +
-        dead_bytes.to_string() +
-        " body bytes). Harmless, but they inflate the module.",
+      " function(s) are unreachable (" +
+      dead_bytes.to_string() +
+      " body bytes). Harmless, but they inflate the module.",
     })
   }
   if findings.length() == 0 {
@@ -92,7 +92,16 @@ pub fn audit(m : @wasm.Module, budget : Int) -> Report {
       message: "no blocking issue found.",
     })
   }
-  { size, custom_bytes, custom_pct, profile, dead_functions: dead.length(), dead_bytes, budget, findings }
+  {
+    size,
+    custom_bytes,
+    custom_pct,
+    profile,
+    dead_functions: dead.length(),
+    dead_bytes,
+    budget,
+    findings,
+  }
 }
 
 ///|
@@ -108,7 +117,7 @@ pub fn passed(r : Report) -> Bool {
 }
 
 ///|
-pub fn error_count(r : Report) -> Int {
+pub fn error_count(r : Report) -> Int32 {
   let mut n = 0
   for f in r.findings {
     if f.level == "error" {

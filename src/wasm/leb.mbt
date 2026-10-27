@@ -1,8 +1,8 @@
 ///|
 /// Unsigned LEB128 as used by the WebAssembly binary format for sizes,
 /// counts and indices. Returns the value and the position after it.
-pub fn read_u32(data : Bytes, pos : Int) -> (UInt, Int) {
-  let mut result : UInt = 0U
+pub fn read_u32(data : Bytes, pos : Int32) -> (UInt32, Int32) {
+  let mut result : UInt32 = 0U
   let mut shift = 0
   let mut i = pos
   let mut done = false
@@ -21,7 +21,7 @@ pub fn read_u32(data : Bytes, pos : Int) -> (UInt, Int) {
 
 ///|
 /// Signed LEB128, used for constant expressions and block types.
-pub fn read_i32(data : Bytes, pos : Int) -> (Int, Int) {
+pub fn read_i32(data : Bytes, pos : Int32) -> (Int32, Int32) {
   let mut result = 0
   let mut shift = 0
   let mut i = pos
@@ -46,7 +46,7 @@ pub fn read_i32(data : Bytes, pos : Int) -> (Int, Int) {
 ///|
 /// Encode an unsigned integer as LEB128. Kept here so the rewriter can emit
 /// the same encoding it parses.
-pub fn write_u32(out : Array[Byte], value : UInt) -> Unit {
+pub fn write_u32(out : Array[Byte], value : UInt32) -> Unit {
   let mut v = value
   while true {
     let low = (v & 0x7FU).reinterpret_as_int()
@@ -60,7 +60,7 @@ pub fn write_u32(out : Array[Byte], value : UInt) -> Unit {
 }
 
 ///|
-pub fn write_u32_bytes(value : UInt) -> Bytes {
+pub fn write_u32_bytes(value : UInt32) -> Bytes {
   let out : Array[Byte] = []
   write_u32(out, value)
   Bytes::from_array(out)

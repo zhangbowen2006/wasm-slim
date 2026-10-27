@@ -8,15 +8,14 @@ fn two_function_module() -> Bytes {
     // magic + version
     b'\x00', b'\x61', b'\x73', b'\x6d', b'\x01', b'\x00', b'\x00', b'\x00',
     // type: count=1, () -> i32
-    b'\x01', b'\x04', b'\x01', b'\x60', b'\x00', b'\x7f',
+     b'\x01', b'\x05', b'\x01', b'\x60', b'\x00', b'\x01', b'\x7f',
     // function: count=2, both type 0
-    b'\x03', b'\x03', b'\x02', b'\x00', b'\x00',
+     b'\x03', b'\x03', b'\x02', b'\x00', b'\x00',
     // export: count=1, "a" func 0
-    b'\x07', b'\x05', b'\x01', b'\x01', b'\x61', b'\x00', b'\x00',
+     b'\x07', b'\x05', b'\x01', b'\x01', b'\x61', b'\x00', b'\x00',
     // code: count=2, each body = 4 bytes (0 locals, const, end)
-    b'\x0a', b'\x0b', b'\x02',
-    b'\x04', b'\x00', b'\x41', b'\x01', b'\x0b',
-    b'\x04', b'\x00', b'\x41', b'\x02', b'\x0b',
+     b'\x0a', b'\x0b', b'\x02', b'\x04', b'\x00', b'\x41', b'\x01', b'\x0b', b'\x04',
+    b'\x00', b'\x41', b'\x02', b'\x0b',
   ])
 }
 
@@ -24,15 +23,13 @@ fn two_function_module() -> Bytes {
 /// Same module, but `$a` calls `$b` first, so both are reachable.
 fn two_function_module_with_call() -> Bytes {
   Bytes::from_array([
-    b'\x00', b'\x61', b'\x73', b'\x6d', b'\x01', b'\x00', b'\x00', b'\x00',
-    b'\x01', b'\x04', b'\x01', b'\x60', b'\x00', b'\x7f',
-    b'\x03', b'\x03', b'\x02', b'\x00', b'\x00',
-    b'\x07', b'\x05', b'\x01', b'\x01', b'\x61', b'\x00', b'\x00',
+    b'\x00', b'\x61', b'\x73', b'\x6d', b'\x01', b'\x00', b'\x00', b'\x00', b'\x01',
+    b'\x05', b'\x01', b'\x60', b'\x00', b'\x01', b'\x7f', b'\x03', b'\x03', b'\x02',
+    b'\x00', b'\x00', b'\x07', b'\x05', b'\x01', b'\x01', b'\x61', b'\x00', b'\x00',
     // code: body 0 = call 1; drop; i32.const 1; end  (5 bytes)
     // body 1 = i32.const 2; end (4 bytes)
-    b'\x0a', b'\x0e', b'\x02',
-    b'\x07', b'\x00', b'\x10', b'\x01', b'\x1a', b'\x41', b'\x01', b'\x0b',
-    b'\x04', b'\x00', b'\x41', b'\x02', b'\x0b',
+     b'\x0a', b'\x0e', b'\x02', b'\x07', b'\x00', b'\x10', b'\x01', b'\x1a', b'\x41',
+    b'\x01', b'\x0b', b'\x04', b'\x00', b'\x41', b'\x02', b'\x0b',
   ])
 }
 

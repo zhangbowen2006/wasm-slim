@@ -34,8 +34,8 @@ test "magic is checked" {
 test "sections are walked with correct sizes" {
   // magic + version + (type section: id=1, size=4, 4 payload bytes)
   let bytes = Bytes::from_array([
-    b'\x00', b'\x61', b'\x73', b'\x6d', b'\x01', b'\x00', b'\x00', b'\x00',
-    b'\x01', b'\x04', b'\x01', b'\x60', b'\x00', b'\x00',
+    b'\x00', b'\x61', b'\x73', b'\x6d', b'\x01', b'\x00', b'\x00', b'\x00', b'\x01',
+    b'\x04', b'\x01', b'\x60', b'\x00', b'\x00',
   ])
   let m = parse_module(bytes)
   inspect(m.sections.length(), content="1")
@@ -47,9 +47,8 @@ test "sections are walked with correct sizes" {
 test "custom sections are stripped and the rest is preserved" {
   // magic + version + custom(id 0, size 3, "abc") + type(id 1, size 2, payload)
   let bytes = Bytes::from_array([
-    b'\x00', b'\x61', b'\x73', b'\x6d', b'\x01', b'\x00', b'\x00', b'\x00',
-    b'\x00', b'\x03', b'\x61', b'\x62', b'\x63',
-    b'\x01', b'\x02', b'\x01', b'\x60',
+    b'\x00', b'\x61', b'\x73', b'\x6d', b'\x01', b'\x00', b'\x00', b'\x00', b'\x00',
+    b'\x03', b'\x61', b'\x62', b'\x63', b'\x01', b'\x02', b'\x01', b'\x60',
   ])
   let m = parse_module(bytes)
   inspect(m.sections.length(), content="2")

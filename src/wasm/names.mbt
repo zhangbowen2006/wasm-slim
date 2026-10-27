@@ -1,7 +1,7 @@
 ///|
 /// Locate a custom section by name and return its payload range (the bytes
 /// after the name itself).
-pub fn custom_payload(m : Module, want : String) -> (Int, Int)? {
+pub fn custom_payload(m : Module, want : String) -> (Int32, Int32)? {
   for s in m.sections {
     if s.id == 0 {
       let (nm, p) = read_name(m.data, s.content_start)
@@ -18,8 +18,8 @@ pub fn custom_payload(m : Module, want : String) -> (Int, Int)? {
 /// Parse the `name` custom section and return the function-name subsection.
 /// Debug builds carry it; release builds usually do not, in which case the
 /// map is empty and callers fall back to indices.
-pub fn function_names(m : Module) -> @hashmap.HashMap[UInt, String] {
-  let out : @hashmap.HashMap[UInt, String] = @hashmap.HashMap([])
+pub fn function_names(m : Module) -> @hashmap.HashMap[UInt32, String] {
+  let out : @hashmap.HashMap[UInt32, String] = @hashmap.HashMap([])
   match custom_payload(m, "name") {
     None => ()
     Some((start, size)) => {
@@ -56,7 +56,10 @@ pub fn function_names(m : Module) -> @hashmap.HashMap[UInt, String] {
 
 ///|
 /// Name for a function index, or a stable fallback.
-pub fn name_of(names : @hashmap.HashMap[UInt, String], idx : UInt) -> String {
+pub fn name_of(
+  names : @hashmap.HashMap[UInt32, String],
+  idx : UInt32,
+) -> String {
   match names.get(idx) {
     Some(n) => n
     None => "func[" + idx.reinterpret_as_int().to_string() + "]"

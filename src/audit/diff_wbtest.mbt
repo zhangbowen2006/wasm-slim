@@ -2,13 +2,11 @@
 /// Two functions, each with a 4-byte body.
 fn mod_two() -> Bytes {
   Bytes::from_array([
-    b'\x00', b'\x61', b'\x73', b'\x6d', b'\x01', b'\x00', b'\x00', b'\x00',
-    b'\x01', b'\x04', b'\x01', b'\x60', b'\x00', b'\x7f',
-    b'\x03', b'\x03', b'\x02', b'\x00', b'\x00',
-    b'\x07', b'\x05', b'\x01', b'\x01', b'\x61', b'\x00', b'\x00',
-    b'\x0a', b'\x0b', b'\x02',
-    b'\x04', b'\x00', b'\x41', b'\x01', b'\x0b',
-    b'\x04', b'\x00', b'\x41', b'\x02', b'\x0b',
+    b'\x00', b'\x61', b'\x73', b'\x6d', b'\x01', b'\x00', b'\x00', b'\x00', b'\x01',
+    b'\x05', b'\x01', b'\x60', b'\x00', b'\x01', b'\x7f', b'\x03', b'\x03', b'\x02',
+    b'\x00', b'\x00', b'\x07', b'\x05', b'\x01', b'\x01', b'\x61', b'\x00', b'\x00',
+    b'\x0a', b'\x0b', b'\x02', b'\x04', b'\x00', b'\x41', b'\x01', b'\x0b', b'\x04',
+    b'\x00', b'\x41', b'\x02', b'\x0b',
   ])
 }
 
@@ -16,14 +14,12 @@ fn mod_two() -> Bytes {
 /// Three functions: the first grew to 6 bytes, a third one is new.
 fn mod_three() -> Bytes {
   Bytes::from_array([
-    b'\x00', b'\x61', b'\x73', b'\x6d', b'\x01', b'\x00', b'\x00', b'\x00',
-    b'\x01', b'\x04', b'\x01', b'\x60', b'\x00', b'\x7f',
-    b'\x03', b'\x04', b'\x03', b'\x00', b'\x00', b'\x00',
-    b'\x07', b'\x05', b'\x01', b'\x01', b'\x61', b'\x00', b'\x00',
-    b'\x0a', b'\x13', b'\x03',
-    b'\x07', b'\x00', b'\x41', b'\x01', b'\x1a', b'\x41', b'\x01', b'\x0b',
-    b'\x04', b'\x00', b'\x41', b'\x02', b'\x0b',
-    b'\x04', b'\x00', b'\x41', b'\x03', b'\x0b',
+    b'\x00', b'\x61', b'\x73', b'\x6d', b'\x01', b'\x00', b'\x00', b'\x00', b'\x01',
+    b'\x05', b'\x01', b'\x60', b'\x00', b'\x01', b'\x7f', b'\x03', b'\x04', b'\x03',
+    b'\x00', b'\x00', b'\x00', b'\x07', b'\x05', b'\x01', b'\x01', b'\x61', b'\x00',
+    b'\x00', b'\x0a', b'\x13', b'\x03', b'\x07', b'\x00', b'\x41', b'\x01', b'\x1a',
+    b'\x41', b'\x01', b'\x0b', b'\x04', b'\x00', b'\x41', b'\x02', b'\x0b', b'\x04',
+    b'\x00', b'\x41', b'\x03', b'\x0b',
   ])
 }
 

@@ -67,12 +67,12 @@ moon run cmd -- new.wasm --diff old.wasm
 
 ```text
 old       39.6 KiB (40603 bytes)
-new       134.1 KiB (137338 bytes)
-delta     +96735 bytes
-functions old=161 new=308 added=158 removed=11
+new       135.1 KiB (138401 bytes)
+delta     +97798 bytes
+functions old=161 new=311 added=161 removed=11
 
 largest changes:
-  +6676 B  ____moonbit__main  (586 -> 7262)
+  +6846 B  ____moonbit__main  (586 -> 7432)
   +4635 B  zhangbowen20068wasmslim3src4wasm10scan__body  (0 -> 4635)
   +2521 B  zhangbowen20068wasmslim3src8analysis14element__roots  (0 -> 2521)
   +1890 B  zhangbowen20068wasmslim3src8analysis7analyze  (0 -> 1890)
@@ -125,7 +125,7 @@ moon run cmd -- app.wasm --top 10
 
 ```sh
 moon check
-moon test          # 18 个单元测试
+moon test          # 24 个单元测试
 moon build --target wasm
 ```
 

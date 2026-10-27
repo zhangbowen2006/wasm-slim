@@ -1,5 +1,5 @@
 ///|
-fn human(n : Int) -> String {
+fn human(n : Int32) -> String {
   if n >= 1024 {
     let whole = n / 1024
     let frac = n % 1024 * 10 / 1024
@@ -11,7 +11,7 @@ fn human(n : Int) -> String {
 
 ///|
 /// Digits only; used for --budget. Ignores anything that is not 0-9.
-fn parse_uint(s : String) -> Int {
+fn parse_uint(s : String) -> Int32 {
   let mut n = 0
   for c in s.to_array() {
     let d = c.to_int()
@@ -26,7 +26,9 @@ fn parse_uint(s : String) -> Int {
 fn usage() -> Unit {
   println("usage:")
   println("  wasmslim <file.wasm>                 size attribution")
-  println("  wasmslim <file.wasm> --check         release gate (exit 1 on error)")
+  println(
+    "  wasmslim <file.wasm> --check         release gate (exit 1 on error)",
+  )
   println("  wasmslim <file.wasm> --check --budget 16384")
   println("  wasmslim <file.wasm> --strip [--out <path>]")
 }
@@ -60,7 +62,13 @@ fn main raise {
     } else if a == "--debug" {
       do_debug = true
     } else if a == "--budget" && i + 1 < args.length() {
-      budget = parse_uint(args[i + 1])
+      let raw = args[i + 1]
+      budget = parse_uint(raw)
+      if budget == 0 {
+        println(
+          "warning: --budget expects a positive integer, got \"" + raw + "\"",
+        )
+      }
       i = i + 1
     } else if a == "--diff" && i + 1 < args.length() {
       diff_path = args[i + 1]
@@ -79,10 +87,10 @@ fn main raise {
     let r = @audit.audit(m, budget)
     println("file      \{path}")
     println("size      \{human(total)} (\{total} bytes)")
+    println("profile   \{r.profile} (custom sections \{r.custom_pct}%)")
     println(
-      "profile   \{r.profile} (custom sections \{r.custom_pct}%)",
+      "dead code \{r.dead_functions} function(s), \{r.dead_bytes} body bytes",
     )
-    println("dead code \{r.dead_functions} function(s), \{r.dead_bytes} body bytes")
     if budget > 0 {
       println("budget    \{budget} bytes")
     } else {
@@ -113,8 +121,20 @@ fn main raise {
     let saved = total - stripped.length()
     println("stripped   " + out_path)
     println("before     " + human(total) + " (" + total.to_string() + " bytes)")
-    println("after      " + human(stripped.length()) + " (" + stripped.length().to_string() + " bytes)")
-    println("saved      " + human(saved) + " (" + (saved * 100 / total).to_string() + "%)")
+    println(
+      "after      " +
+      human(stripped.length()) +
+      " (" +
+      stripped.length().to_string() +
+      " bytes)",
+    )
+    println(
+      "saved      " +
+      human(saved) +
+      " (" +
+      (saved * 100 / total).to_string() +
+      "%)",
+    )
     println("removed    custom sections only; code/type/export untouched")
     return
   }
@@ -128,7 +148,18 @@ fn main raise {
       if scan.unsupported.length() > 0 {
         let at = scan.unsupported_at[0]
         let bad = scan.unsupported[0]
-        println("func[" + bi.to_string() + "] body=" + b.start.to_string() + ".." + b.end.to_string() + " bad op=" + bad.to_string() + " at=" + at.to_string())
+        println(
+          "func[" +
+          bi.to_string() +
+          "] body=" +
+          b.start.to_string() +
+          ".." +
+          b.end.to_string() +
+          " bad op=" +
+          bad.to_string() +
+          " at=" +
+          at.to_string(),
+        )
       }
       bi = bi + 1
     }
@@ -139,7 +170,7 @@ fn main raise {
     let names = @wasm.function_names(m)
     let bodies = @wasm.function_bodies(m)
     let imported = @wasm.imported_function_count(m)
-    let sizes : Array[(Int, Int)] = []
+    let sizes : Array[(Int32, Int32)] = []
     let mut bi = 0
     while bi < bodies.length() {
       let b = bodies[bi]
@@ -169,24 +200,71 @@ fn main raise {
   }
 
   if diff_path != "" {
+    if !@fs.path_exists(diff_path) {
+      println("error: cannot read " + diff_path)
+      abort("missing file")
+    }
     let old_data = @fs.read_file_to_bytes(diff_path)
     let old_m = @wasm.parse_module(old_data)
     let d = @audit.diff(old_m, m)
     let delta = d.new_size - d.old_size
-    println("old       " + human(d.old_size) + " (" + d.old_size.to_string() + " bytes)")
-    println("new       " + human(d.new_size) + " (" + d.new_size.to_string() + " bytes)")
-    println("delta     " + (if delta >= 0 { "+" } else { "" }) + delta.to_string() + " bytes")
-    println("functions old=" + d.old_functions.to_string() + " new=" + d.new_functions.to_string() + " added=" + d.added.length().to_string() + " removed=" + d.removed.length().to_string())
+    println(
+      "old       " +
+      human(d.old_size) +
+      " (" +
+      d.old_size.to_string() +
+      " bytes)",
+    )
+    println(
+      "new       " +
+      human(d.new_size) +
+      " (" +
+      d.new_size.to_string() +
+      " bytes)",
+    )
+    println(
+      "delta     " +
+      (if delta >= 0 { "+" } else { "" }) +
+      delta.to_string() +
+      " bytes",
+    )
+    println(
+      "functions old=" +
+      d.old_functions.to_string() +
+      " new=" +
+      d.new_functions.to_string() +
+      " added=" +
+      d.added.length().to_string() +
+      " removed=" +
+      d.removed.length().to_string(),
+    )
     if !d.named {
-      println("note      at least one side has no name section; functions are aligned by index")
+      println(
+        "note      at least one side has no name section; functions are aligned by index",
+      )
     }
     println("")
-    println("largest changes:")
     let top = @audit.top_changes(d, 10)
+    if top.length() == 0 {
+      println("no function changed size")
+    } else {
+      println("largest changes:")
+    }
     for item in top {
       let dd = @audit.delta_of(item)
       let sign = if dd >= 0 { "+" } else { "" }
-      println("  " + sign + dd.to_string() + " B  " + item.name + "  (" + item.old_size.to_string() + " -> " + item.new_size.to_string() + ")")
+      println(
+        "  " +
+        sign +
+        dd.to_string() +
+        " B  " +
+        item.name +
+        "  (" +
+        item.old_size.to_string() +
+        " -> " +
+        item.new_size.to_string() +
+        ")",
+      )
     }
     return
   }
@@ -216,11 +294,15 @@ fn main raise {
     }
   }
   println("")
-  println("functions  imported=\{r.imported} defined=\{r.defined} total=\{r.total}")
+  println(
+    "functions  imported=\{r.imported} defined=\{r.defined} total=\{r.total}",
+  )
   println("reachable  \{reach}")
   println("unreachable \{dead.length()}  bodies=\{human(dead_bytes)}")
   if r.indirect_sites > 0 {
-    println("note       \{r.indirect_sites} function(s) use call_indirect; element targets are kept as roots")
+    println(
+      "note       \{r.indirect_sites} function(s) use call_indirect; element targets are kept as roots",
+    )
   }
   if r.unsupported.length() > 0 {
     let mut ops = ""

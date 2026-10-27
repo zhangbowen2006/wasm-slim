@@ -3,8 +3,8 @@
 /// 8-byte header + custom(id 0, size 20) + a small type section.
 fn debug_like_module() -> Bytes {
   let bytes : Array[Byte] = [
-    b'\x00', b'\x61', b'\x73', b'\x6d', b'\x01', b'\x00', b'\x00', b'\x00',
-    b'\x00', b'\x14',
+    b'\x00', b'\x61', b'\x73', b'\x6d', b'\x01', b'\x00', b'\x00', b'\x00', b'\x00',
+    b'\x14',
   ]
   for _ in 0..<20 {
     bytes.push(b'\x00')
@@ -20,8 +20,8 @@ fn debug_like_module() -> Bytes {
 /// Same shape but without the custom section: release-like.
 fn release_like_module() -> Bytes {
   Bytes::from_array([
-    b'\x00', b'\x61', b'\x73', b'\x6d', b'\x01', b'\x00', b'\x00', b'\x00',
-    b'\x01', b'\x02', b'\x01', b'\x60',
+    b'\x00', b'\x61', b'\x73', b'\x6d', b'\x01', b'\x00', b'\x00', b'\x00', b'\x01',
+    b'\x02', b'\x01', b'\x60',
   ])
 }
 

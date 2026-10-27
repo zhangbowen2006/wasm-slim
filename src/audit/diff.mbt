@@ -2,21 +2,21 @@
 /// Per-function size change between two module versions.
 pub struct FuncDelta {
   name : String
-  old_size : Int
-  new_size : Int
+  old_size : Int32
+  new_size : Int32
 }
 
 ///|
-pub fn delta_of(d : FuncDelta) -> Int {
+pub fn delta_of(d : FuncDelta) -> Int32 {
   d.new_size - d.old_size
 }
 
 ///|
 pub struct DiffReport {
-  old_size : Int
-  new_size : Int
-  old_functions : Int
-  new_functions : Int
+  old_size : Int32
+  new_size : Int32
+  old_functions : Int32
+  new_functions : Int32
   added : Array[FuncDelta]
   removed : Array[FuncDelta]
   changed : Array[FuncDelta]
@@ -24,18 +24,28 @@ pub struct DiffReport {
 }
 
 ///|
-/// Function name -> body size for one module.
-fn collect(m : @wasm.Module) -> (@hashmap.HashMap[String, Int], Bool) {
+/// Body size per function, keyed by name when `use_names` is set and by index
+/// otherwise. Both sides must use the same keying, or a module with a name
+/// section compared against one without would report every function as
+/// added and removed at once.
+fn collect(
+  m : @wasm.Module,
+  use_names : Bool,
+) -> (@hashmap.HashMap[String, Int32], Bool) {
   let names = @wasm.function_names(m)
   let bodies = @wasm.function_bodies(m)
   let imported = @wasm.imported_function_count(m)
-  let out : @hashmap.HashMap[String, Int] = @hashmap.HashMap([])
+  let out : @hashmap.HashMap[String, Int32] = @hashmap.HashMap([])
   let mut i = 0
   while i < bodies.length() {
     let b = bodies[i]
     let idx = (imported + i).reinterpret_as_uint()
-    let nm = @wasm.name_of(names, idx)
-    out.set(nm, b.end - b.start)
+    let key = if use_names {
+      @wasm.name_of(names, idx)
+    } else {
+      "func[" + idx.reinterpret_as_int().to_string() + "]"
+    }
+    out.set(key, b.end - b.start)
     i = i + 1
   }
   (out, names.length() > 0)
@@ -46,24 +56,28 @@ fn collect(m : @wasm.Module) -> (@hashmap.HashMap[String, Int], Bool) {
 /// name section is missing both sides fall back to `func[<index>]`, which is
 /// only meaningful if the function order did not shift.
 pub fn diff(old : @wasm.Module, new : @wasm.Module) -> DiffReport {
-  let (old_map, old_named) = collect(old)
-  let (new_map, new_named) = collect(new)
+  // Decide the keying once for both sides: mixing names on one side and
+  // indices on the other makes every function look added and removed.
+  let old_names = @wasm.function_names(old)
+  let new_names = @wasm.function_names(new)
+  let use_names = old_names.length() > 0 && new_names.length() > 0
+  let (old_map, _) = collect(old, use_names)
+  let (new_map, _) = collect(new, use_names)
   let added : Array[FuncDelta] = []
   let removed : Array[FuncDelta] = []
   let changed : Array[FuncDelta] = []
   for k, v in new_map {
     match old_map.get(k) {
-      None => added.push({ name: k, old_size: 0, new_size: v })
-      Some(prev) => {
+      None => added.push({ name: k, old_size: 0, new_size: v, })
+      Some(prev) =>
         if prev != v {
-          changed.push({ name: k, old_size: prev, new_size: v })
+          changed.push({ name: k, old_size: prev, new_size: v, })
         }
-      }
     }
   }
   for k, v in old_map {
     if new_map.get(k) is None {
-      removed.push({ name: k, old_size: v, new_size: 0 })
+      removed.push({ name: k, old_size: v, new_size: 0, })
     }
   }
   {
@@ -74,13 +88,13 @@ pub fn diff(old : @wasm.Module, new : @wasm.Module) -> DiffReport {
     added,
     removed,
     changed,
-    named: old_named && new_named,
+    named: use_names,
   }
 }
 
 ///|
 /// Sort by absolute delta, descending, and keep the first `n`.
-fn top_by_abs(items : Array[FuncDelta], n : Int) -> Array[FuncDelta] {
+fn top_by_abs(items : Array[FuncDelta], n : Int32) -> Array[FuncDelta] {
   let mut i = 0
   while i < items.length() {
     let mut best = i
@@ -110,7 +124,7 @@ fn top_by_abs(items : Array[FuncDelta], n : Int) -> Array[FuncDelta] {
 }
 
 ///|
-pub fn top_changes(r : DiffReport, n : Int) -> Array[FuncDelta] {
+pub fn top_changes(r : DiffReport, n : Int32) -> Array[FuncDelta] {
   let all : Array[FuncDelta] = []
   for d in r.added {
     all.push(d)
