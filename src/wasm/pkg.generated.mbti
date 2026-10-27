@@ -1,0 +1,83 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "zhangbowen2006/wasmslim/src/wasm"
+
+// Values
+pub fn custom_bytes(Module) -> Int32
+
+pub fn defined_function_count(Module) -> Int32
+
+pub fn exports(Module) -> Array[Export]
+
+pub fn function_bodies(Module) -> Array[FuncBody]
+
+pub fn function_type_indices(Module) -> Array[UInt32]
+
+pub fn imported_function_count(Module) -> Int32
+
+pub fn is_wasm(Bytes) -> Bool
+
+pub fn new_ref_scan() -> RefScan
+
+pub fn parse_module(Bytes) -> Module
+
+pub fn read_i32(Bytes, Int32) -> (Int32, Int32)
+
+pub fn read_name(Bytes, Int32) -> (String, Int32)
+
+pub fn read_u32(Bytes, Int32) -> (UInt32, Int32)
+
+pub fn scan_body(Bytes, FuncBody) -> RefScan
+
+pub fn section_of(Module, Int32) -> Section?
+
+pub fn skip_block_type(Bytes, Int32) -> Int32
+
+pub fn skip_global_type(Bytes, Int32) -> Int32
+
+pub fn skip_limits(Bytes, Int32) -> Int32
+
+pub fn skip_table_type(Bytes, Int32) -> Int32
+
+pub fn strip_custom(Module) -> Bytes
+
+pub fn write_u32(Array[Byte], UInt32) -> Unit
+
+pub fn write_u32_bytes(UInt32) -> Bytes
+
+// Errors
+
+// Types and methods
+pub struct Export {
+  name : String
+  kind : Int32
+  index : UInt32
+}
+
+pub struct FuncBody {
+  start : Int32
+  end : Int32
+}
+
+pub struct Module {
+  data : Bytes
+  sections : Array[Section]
+}
+
+pub struct RefScan {
+  calls : Array[UInt32]
+  ref_funcs : Array[UInt32]
+  global_refs : Array[UInt32]
+  mut has_indirect : Bool
+  unsupported : Array[Int32]
+  unsupported_at : Array[Int32]
+}
+
+pub struct Section {
+  id : Int32
+  content_start : Int32
+  content_size : Int32
+}
+
+// Type aliases
+
+// Traits
