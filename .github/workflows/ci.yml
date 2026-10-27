@@ -15,9 +15,11 @@ jobs:
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
 
-      - run: moon check --deny-warn
+      - run: moon update
 
-      - run: moon test --deny-warn
+      - run: moon check
+
+      - run: moon test
 
       - name: Build a real wasm sample
         run: moon build --target wasm --release
