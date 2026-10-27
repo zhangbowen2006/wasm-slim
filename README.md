@@ -55,6 +55,9 @@ moon run cmd -- app.wasm --check --budget 32768
 # 体积归因：这些字节花在哪
 moon run cmd -- app.wasm
 
+# 帮助
+moon run cmd -- --help
+
 # 需要时裁掉调试信息（debug 产物可减 60%）
 moon run cmd -- app.wasm --strip --out slim.wasm
 # 实测：debug 产物 40603 -> 16227 字节（-60%），release 产物 31706 -> 31592（-0.4%）
