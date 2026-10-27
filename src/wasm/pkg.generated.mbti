@@ -1,8 +1,14 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "zhangbowen2006/wasmslim/src/wasm"
 
+import {
+  "moonbitlang/core/hashmap",
+}
+
 // Values
 pub fn custom_bytes(Module) -> Int32
+
+pub fn custom_payload(Module, String) -> (Int32, Int32)?
 
 pub fn defined_function_count(Module) -> Int32
 
@@ -12,9 +18,13 @@ pub fn exports(Module) -> Array[Export]
 
 pub fn function_bodies(Module) -> Array[FuncBody]
 
+pub fn function_names(Module) -> @hashmap.HashMap[UInt32, String]
+
 pub fn imported_function_count(Module) -> Int32
 
 pub fn is_wasm(Bytes) -> Bool
+
+pub fn name_of(@hashmap.HashMap[UInt32, String], UInt32) -> String
 
 pub fn new_ref_scan() -> RefScan
 

@@ -10,17 +10,40 @@ pub fn audit(@wasm.Module, Int32) -> Report
 
 pub fn classify(Int32, Int32) -> String
 
+pub fn delta_of(FuncDelta) -> Int32
+
+pub fn diff(@wasm.Module, @wasm.Module) -> DiffReport
+
 pub fn error_count(Report) -> Int32
 
 pub fn passed(Report) -> Bool
 
+pub fn top_changes(DiffReport, Int32) -> Array[FuncDelta]
+
 // Errors
 
 // Types and methods
+pub struct DiffReport {
+  old_size : Int32
+  new_size : Int32
+  old_functions : Int32
+  new_functions : Int32
+  added : Array[FuncDelta]
+  removed : Array[FuncDelta]
+  changed : Array[FuncDelta]
+  named : Bool
+}
+
 pub struct Finding {
   level : String
   code : String
   message : String
+}
+
+pub struct FuncDelta {
+  name : String
+  old_size : Int32
+  new_size : Int32
 }
 
 pub struct Report {

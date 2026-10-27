@@ -48,6 +48,12 @@ jobs:
           fi
           echo "gate correctly failed on the budget"
 
+      - name: Diff against the checked-in snapshot
+        run: moon run cmd -- _build/wasm/debug/build/cmd/cmd.wasm --diff fixtures/self.wasm
+
+      - name: Top functions by size
+        run: moon run cmd -- _build/wasm/debug/build/cmd/cmd.wasm --top 5
+
       - name: Strip and validate the result
         run: |
           moon run cmd -- _build/wasm/debug/build/cmd/cmd.wasm --strip --out /tmp/slim.wasm

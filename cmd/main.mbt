@@ -47,6 +47,8 @@ fn main raise {
   let mut do_strip = false
   let mut do_debug = false
   let mut budget = 0
+  let mut top_n = 0
+  let mut diff_path = ""
   let mut out_path = path + ".stripped.wasm"
   let mut i = 2
   while i < args.length() {
@@ -59,6 +61,12 @@ fn main raise {
       do_debug = true
     } else if a == "--budget" && i + 1 < args.length() {
       budget = parse_uint(args[i + 1])
+      i = i + 1
+    } else if a == "--diff" && i + 1 < args.length() {
+      diff_path = args[i + 1]
+      i = i + 1
+    } else if a == "--top" && i + 1 < args.length() {
+      top_n = parse_uint(args[i + 1])
       i = i + 1
     } else if a == "--out" && i + 1 < args.length() {
       out_path = args[i + 1]
@@ -123,6 +131,62 @@ fn main raise {
         println("func[" + bi.to_string() + "] body=" + b.start.to_string() + ".." + b.end.to_string() + " bad op=" + bad.to_string() + " at=" + at.to_string())
       }
       bi = bi + 1
+    }
+    return
+  }
+
+  if top_n > 0 {
+    let names = @wasm.function_names(m)
+    let bodies = @wasm.function_bodies(m)
+    let imported = @wasm.imported_function_count(m)
+    let sizes : Array[(Int, Int)] = []
+    let mut bi = 0
+    while bi < bodies.length() {
+      let b = bodies[bi]
+      sizes.push((b.end - b.start, imported + bi))
+      bi = bi + 1
+    }
+    // selection sort by size, descending; N is small
+    let mut out_i = 0
+    while out_i < top_n && out_i < sizes.length() {
+      let mut best = out_i
+      let mut j = out_i + 1
+      while j < sizes.length() {
+        if sizes[j].0 > sizes[best].0 {
+          best = j
+        }
+        j = j + 1
+      }
+      let tmp = sizes[out_i]
+      sizes[out_i] = sizes[best]
+      sizes[best] = tmp
+      let item = sizes[out_i]
+      let nm = @wasm.name_of(names, item.1.reinterpret_as_uint())
+      println("\{human(item.0)}  \{nm}")
+      out_i = out_i + 1
+    }
+    return
+  }
+
+  if diff_path != "" {
+    let old_data = @fs.read_file_to_bytes(diff_path)
+    let old_m = @wasm.parse_module(old_data)
+    let d = @audit.diff(old_m, m)
+    let delta = d.new_size - d.old_size
+    println("old       " + human(d.old_size) + " (" + d.old_size.to_string() + " bytes)")
+    println("new       " + human(d.new_size) + " (" + d.new_size.to_string() + " bytes)")
+    println("delta     " + (if delta >= 0 { "+" } else { "" }) + delta.to_string() + " bytes")
+    println("functions old=" + d.old_functions.to_string() + " new=" + d.new_functions.to_string() + " added=" + d.added.length().to_string() + " removed=" + d.removed.length().to_string())
+    if !d.named {
+      println("note      at least one side has no name section; functions are aligned by index")
+    }
+    println("")
+    println("largest changes:")
+    let top = @audit.top_changes(d, 10)
+    for item in top {
+      let dd = @audit.delta_of(item)
+      let sign = if dd >= 0 { "+" } else { "" }
+      println("  " + sign + dd.to_string() + " B  " + item.name + "  (" + item.old_size.to_string() + " -> " + item.new_size.to_string() + ")")
     }
     return
   }
