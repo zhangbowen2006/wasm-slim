@@ -65,7 +65,7 @@ moon run cmd -- path/to/module.wasm --debug
 
 ```sh
 moon check --deny-warn
-moon test --deny-warn     # 5 个单元测试：LEB128 往返、段遍历、magic 校验、裁剪保真
+moon test --deny-warn     # 9 个单元测试：LEB128 往返、段遍历、magic 校验、可达性判定、导出解析、裁剪保真
 moon build --target wasm  # 用本仓库自身产物做端到端样本
 ```
 

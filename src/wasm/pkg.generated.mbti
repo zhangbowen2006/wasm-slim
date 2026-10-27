@@ -6,11 +6,11 @@ pub fn custom_bytes(Module) -> Int32
 
 pub fn defined_function_count(Module) -> Int32
 
+pub fn ensure(Bytes, Int32, Int32, String) -> Unit
+
 pub fn exports(Module) -> Array[Export]
 
 pub fn function_bodies(Module) -> Array[FuncBody]
-
-pub fn function_type_indices(Module) -> Array[UInt32]
 
 pub fn imported_function_count(Module) -> Int32
 
@@ -66,7 +66,6 @@ pub struct Module {
 pub struct RefScan {
   calls : Array[UInt32]
   ref_funcs : Array[UInt32]
-  global_refs : Array[UInt32]
   mut has_indirect : Bool
   unsupported : Array[Int32]
   unsupported_at : Array[Int32]

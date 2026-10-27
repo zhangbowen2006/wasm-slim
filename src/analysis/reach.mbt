@@ -11,11 +11,6 @@ pub struct Reach {
 }
 
 ///|
-pub fn function_count(r : Reach) -> Int {
-  r.total
-}
-
-///|
 pub fn unreachable_functions(r : Reach) -> Array[UInt] {
   let out : Array[UInt] = []
   for i in 0..<r.total {

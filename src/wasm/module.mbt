@@ -14,6 +14,26 @@ pub struct Module {
 }
 
 ///|
+/// Refuse to read past the end of the file. A malformed module must fail with
+/// a message that names the offset, not with an index-out-of-bounds stack.
+pub fn ensure(data : Bytes, pos : Int, need : Int, what : String) -> Unit {
+  if pos < 0 || need < 0 || pos + need > data.length() {
+    // `abort` drops its message on the wasm backend, so print first.
+    println(
+      "error: malformed module: " +
+      what +
+      " at " +
+      pos.to_string() +
+      " needs " +
+      need.to_string() +
+      " bytes, file has " +
+      data.length().to_string(),
+    )
+    abort("malformed module")
+  }
+}
+
+///|
 pub fn is_wasm(data : Bytes) -> Bool {
   data.length() >= 8 &&
   data[0].to_int() == 0x00 &&
@@ -35,6 +55,7 @@ pub fn parse_module(data : Bytes) -> Module {
     let id = data[pos].to_int()
     let (size, after) = read_u32(data, pos + 1)
     let n = size.reinterpret_as_int()
+    ensure(data, after, n, "section " + id.to_string())
     sections.push({ id, content_start: after, content_size: n, })
     pos = after + n
   }
@@ -56,6 +77,7 @@ pub fn section_of(m : Module, id : Int) -> Section? {
 pub fn read_name(data : Bytes, pos : Int) -> (String, Int) {
   let (len, p) = read_u32(data, pos)
   let n = len.reinterpret_as_int()
+  ensure(data, p, n, "name")
   let raw = data[p:p + n]
   (@utf8.decode(raw) catch { _ => "" }, p + n)
 }
@@ -153,24 +175,6 @@ pub fn defined_function_count(m : Module) -> Int {
       count.reinterpret_as_int()
     }
   }
-}
-
-///|
-pub fn function_type_indices(m : Module) -> Array[UInt] {
-  let out : Array[UInt] = []
-  match section_of(m, 3) {
-    None => ()
-    Some(sec) => {
-      let (count, p0) = read_u32(m.data, sec.content_start)
-      let mut pos = p0
-      for _ in 0..<count.reinterpret_as_int() {
-        let (t, p) = read_u32(m.data, pos)
-        out.push(t)
-        pos = p
-      }
-    }
-  }
-  out
 }
 
 ///|

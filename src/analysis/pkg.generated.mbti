@@ -10,8 +10,6 @@ pub fn analyze(@wasm.Module) -> Reach
 
 pub fn element_roots(@wasm.Module) -> (Array[UInt32], Array[Int32])
 
-pub fn function_count(Reach) -> Int32
-
 pub fn skip_expr(Bytes, Int32) -> Int32
 
 pub fn unreachable_functions(Reach) -> Array[UInt32]

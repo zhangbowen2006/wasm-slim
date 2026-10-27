@@ -12,7 +12,6 @@ pub struct FuncBody {
 pub struct RefScan {
   calls : Array[UInt]
   ref_funcs : Array[UInt]
-  global_refs : Array[UInt]
   mut has_indirect : Bool
   unsupported : Array[Int]
   unsupported_at : Array[Int]
@@ -23,7 +22,6 @@ pub fn new_ref_scan() -> RefScan {
   {
     calls: [],
     ref_funcs: [],
-    global_refs: [],
     has_indirect: false,
     unsupported: [],
     unsupported_at: [],

@@ -2,4 +2,6 @@ _build/
 .mooncakes/
 *.stripped.wasm
 报名材料/
+fixtures/bad-*.wasm
+fixtures/o.wasm
 .DS_Store
