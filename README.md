@@ -6,7 +6,7 @@ MoonBit 的 debug 构建里，**约 60% 的字节是自定义段**（名字表�
 
 ## 实测
 
-对一个 40 KB 的真实 MoonBit 产物：
+对一个 40 KB 的真实 MoonBit 产物（仓库内 `fixtures/self.wasm`，本工具自身的构建快照）：
 
 ```
 $ moon run cmd -- build/cmd.wasm
@@ -32,6 +32,16 @@ saved      23.8 KiB (60%)
 ```
 
 裁剪后的模块通过标准验证器：`WebAssembly.validate(stripped) === true`。
+
+**同一项目的三种构建，裁剪收益差别很大**：
+
+| 构建 | 大小 | custom 段 | `--strip` 收益 |
+| --- | --- | --- | --- |
+| debug (wasm) | 40603 B | 55.0 KiB (57%) | **-60%** |
+| release (wasm) | 31706 B | 110 B (0%) | -0.4% |
+| release (wasm-gc) | 28220 B | 110 B (0%) | -0.4% |
+
+release 构建已经很紧凑，`--strip` 几乎没有收益。WasmSlim 的价值在于**让你一眼看出手上这份产物是哪种构建**，而不是假装还能压出空间。
 
 ## 用法
 
