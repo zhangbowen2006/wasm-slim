@@ -1,8 +1,0 @@
-pkgtype(kind: "executable")
-
-import {
-  "moonbitlang/core/env",
-  "moonbitlang/x/fs",
-  "zhangbowen2006/wasmslim/src/wasm",
-  "zhangbowen2006/wasmslim/src/analysis",
-}
