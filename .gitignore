@@ -3,5 +3,6 @@ _build/
 *.stripped.wasm
 报名材料/
 fixtures/bad-*.wasm
+fixtures/edge-*.wasm
 fixtures/o.wasm
 .DS_Store

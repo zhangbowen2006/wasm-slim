@@ -8,6 +8,8 @@ import {
 // Values
 pub fn analyze(@wasm.Module) -> Reach
 
+pub fn dead_body_bytes(@wasm.Module, Reach) -> Int32
+
 pub fn element_roots(@wasm.Module) -> (Array[UInt32], Array[Int32])
 
 pub fn skip_expr(Bytes, Int32) -> Int32
@@ -25,6 +27,7 @@ pub struct Reach {
   roots : Array[UInt32]
   unsupported : Array[Int32]
   indirect_sites : Int32
+  out_of_range_calls : Int32
 }
 
 // Type aliases

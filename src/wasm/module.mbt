@@ -48,7 +48,12 @@ pub fn is_wasm(data : Bytes) -> Bool {
 pub fn parse_module(data : Bytes) -> Module {
   let sections : Array[Section] = []
   if !is_wasm(data) {
-    abort("not a WebAssembly module: bad magic")
+    println(
+      "error: not a WebAssembly module (need 8+ bytes starting with \\0asm; file has " +
+      data.length().to_string() +
+      " bytes)",
+    )
+    abort("not wasm")
   }
   let mut pos = 8
   while pos < data.length() {

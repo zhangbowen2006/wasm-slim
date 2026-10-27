@@ -6,7 +6,15 @@ pub fn read_u32(data : Bytes, pos : Int32) -> (UInt32, Int32) {
   let mut shift = 0
   let mut i = pos
   let mut done = false
+  let mut taken = 0
   while !done && i < data.length() {
+    if taken >= 5 {
+      // A u32 LEB128 cannot occupy more than 5 bytes; longer means the file
+      // is malformed rather than truncated.
+      println("error: LEB128 value at " + pos.to_string() + " exceeds 5 bytes")
+      abort("bad leb128")
+    }
+    taken = taken + 1
     let b = data[i].to_int()
     result = result | ((b & 0x7F).reinterpret_as_uint() << shift)
     i = i + 1

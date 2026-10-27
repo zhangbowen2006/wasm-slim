@@ -63,21 +63,22 @@ moon run cmd -- app.wasm --strip --out slim.wasm
 ## 差分：这次改动大在哪个函数
 
 ```sh
-moon run cmd -- new.wasm --diff old.wasm
+moon run cmd -- fixtures/self-v2.wasm --diff fixtures/self.wasm
 ```
 
 ```text
 old       39.6 KiB (40603 bytes)
-new       135.1 KiB (138401 bytes)
-delta     +97798 bytes
-functions old=161 new=311 added=161 removed=11
+new       137.4 KiB (140799 bytes)
+delta     +100196 bytes
+functions old=161 new=316 added=166 removed=11
 
 largest changes:
-  +6846 B  ____moonbit__main  (586 -> 7432)
+  +7076 B  ____moonbit__main  (586 -> 7662)
   +4635 B  zhangbowen20068wasmslim3src4wasm10scan__body  (0 -> 4635)
   +2521 B  zhangbowen20068wasmslim3src8analysis14element__roots  (0 -> 2521)
-  +1890 B  zhangbowen20068wasmslim3src8analysis7analyze  (0 -> 1890)
 ```
+
+示例基于仓库内两个固定快照（`fixtures/self.wasm` 与 `fixtures/self-v2.wasm`），可逐字复现；项目继续增长时这两个文件不变，数字也不会漂。
 
 函数名来自 `name` custom section 的函数名子段（调试构建自带）；没有名字段时退回 `func[<index>]` 并在输出里注明按索引对齐。匹配按函数名做，所以函数增删不会错位。
 
@@ -103,7 +104,7 @@ moon run cmd -- app.wasm --top 10
 | `dead-code` | warn | 存在不可达函数（记录数量与函数体字节） |
 | `ok` | info | 没有阻塞问题 |
 
-退出码：`0` 通过，`1` 有 error，`2` 用法或解析错误。
+退出码：`0` 通过，`1` 失败（门禁 error、用法错误或模块解析失败）。MoonBit 的 `abort` 固定返回 1，因此不区分失败类型。
 
 ## 支撑它的解析器
 

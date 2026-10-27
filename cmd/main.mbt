@@ -23,6 +23,12 @@ fn parse_uint(s : String) -> Int32 {
 }
 
 ///|
+fn is_flag(s : String) -> Bool {
+  let cs = s.to_array()
+  cs.length() > 0 && cs[0] == '-'
+}
+
+///|
 fn usage() -> Unit {
   println("usage:")
   println("  wasmslim <file.wasm>                 size attribution")
@@ -38,10 +44,40 @@ fn main raise {
   let args = @env.args()
   if args.length() < 2 {
     usage()
-    return
+    // Non-zero so a CI job that invokes the tool without arguments fails
+    // instead of silently passing.
+    abort("no input file")
+  }
+  // --help / -h anywhere
+  let mut h = 1
+  while h < args.length() {
+    if args[h] == "--help" || args[h] == "-h" {
+      usage()
+      return
+    }
+    h = h + 1
+  }
+
+  // The first positional argument is the module; flags come after it.
+  if is_flag(args[1]) {
+    println(
+      "error: the first argument must be a .wasm file; flags come after it",
+    )
+    println("")
+    usage()
+    abort("flags before file")
   }
   let path = args[1]
-  let data = @fs.read_file_to_bytes(path)
+  let data = @fs.read_file_to_bytes(path) catch {
+    _ => {
+      println(
+        "error: cannot read " +
+        path +
+        " (missing, a directory, or no permission)",
+      )
+      abort("io error")
+    }
+  }
   let m = @wasm.parse_module(data)
   let total = data.length()
 
@@ -79,6 +115,8 @@ fn main raise {
     } else if a == "--out" && i + 1 < args.length() {
       out_path = args[i + 1]
       i = i + 1
+    } else if is_flag(a) {
+      println("warning: unknown flag " + a + " (ignored)")
     }
     i = i + 1
   }
@@ -285,20 +323,18 @@ fn main raise {
     }
   }
   let dead = @analysis.unreachable_functions(r)
-  let bodies = @wasm.function_bodies(m)
-  let mut dead_bytes = 0
-  for idx in dead {
-    let body_idx = idx.reinterpret_as_int() - r.imported
-    if body_idx >= 0 && body_idx < bodies.length() {
-      dead_bytes = dead_bytes + (bodies[body_idx].end - bodies[body_idx].start)
-    }
-  }
+  let dead_bytes = @analysis.dead_body_bytes(m, r)
   println("")
   println(
     "functions  imported=\{r.imported} defined=\{r.defined} total=\{r.total}",
   )
   println("reachable  \{reach}")
   println("unreachable \{dead.length()}  bodies=\{human(dead_bytes)}")
+  if r.out_of_range_calls > 0 {
+    println(
+      "warning    \{r.out_of_range_calls} call(s) target a function index outside 0..\{r.total - 1}; the module is invalid",
+    )
+  }
   if r.indirect_sites > 0 {
     println(
       "note       \{r.indirect_sites} function(s) use call_indirect; element targets are kept as roots",

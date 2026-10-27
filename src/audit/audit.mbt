@@ -42,14 +42,7 @@ pub fn audit(m : @wasm.Module, budget : Int32) -> Report {
   let profile = classify(custom_bytes, size)
   let reach = @analysis.analyze(m)
   let dead = @analysis.unreachable_functions(reach)
-  let bodies = @wasm.function_bodies(m)
-  let mut dead_bytes = 0
-  for idx in dead {
-    let body_idx = idx.reinterpret_as_int() - reach.imported
-    if body_idx >= 0 && body_idx < bodies.length() {
-      dead_bytes = dead_bytes + (bodies[body_idx].end - bodies[body_idx].start)
-    }
-  }
+  let dead_bytes = @analysis.dead_body_bytes(m, reach)
   let findings : Array[Finding] = []
   if profile == "debug" {
     findings.push({

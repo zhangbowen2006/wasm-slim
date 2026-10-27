@@ -8,6 +8,7 @@ pub struct Reach {
   roots : Array[UInt32]
   unsupported : Array[Int32]
   indirect_sites : Int32
+  out_of_range_calls : Int32
 }
 
 ///|
@@ -263,6 +264,7 @@ pub fn analyze(m : @wasm.Module) -> Reach {
   let bodies = @wasm.function_bodies(m)
   let mut head = 0
   let mut indirect_sites = 0
+  let mut out_of_range_calls : Int32 = 0
   while head < queue.length() {
     let idx = queue[head]
     head = head + 1
@@ -285,7 +287,9 @@ pub fn analyze(m : @wasm.Module) -> Reach {
       }
       for c in scan.calls {
         let ci = c.reinterpret_as_int()
-        if ci >= 0 && ci < total && !reachable[ci] {
+        if ci < 0 || ci >= total {
+          out_of_range_calls = out_of_range_calls + 1
+        } else if !reachable[ci] {
           reachable[ci] = true
           queue.push(c)
         }
@@ -299,5 +303,30 @@ pub fn analyze(m : @wasm.Module) -> Reach {
       }
     }
   }
-  { imported, defined, total, reachable, roots, unsupported, indirect_sites, }
+  {
+    imported,
+    defined,
+    total,
+    reachable,
+    roots,
+    unsupported,
+    indirect_sites,
+    out_of_range_calls,
+  }
+}
+
+///|
+/// Total body bytes occupied by unreachable functions. Lives here so the CLI
+/// and the audit report cannot drift apart.
+pub fn dead_body_bytes(m : @wasm.Module, r : Reach) -> Int32 {
+  let dead = unreachable_functions(r)
+  let bodies = @wasm.function_bodies(m)
+  let mut total = 0
+  for idx in dead {
+    let body_idx = idx.reinterpret_as_int() - r.imported
+    if body_idx >= 0 && body_idx < bodies.length() {
+      total = total + (bodies[body_idx].end - bodies[body_idx].start)
+    }
+  }
+  total
 }
